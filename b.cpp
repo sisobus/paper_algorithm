@@ -24,8 +24,6 @@ typedef vector<char>            DataVector;
 typedef pair<int,int>           ii;
 typedef pair<int,DataVector>    iDV;
 default_random_engine generator;
-auto pqCompareFunction = [](const ii& e1,const ii& e2) {return e1.second>e2.second;};
-typedef priority_queue<ii,vector<ii>,decltype(pqCompareFunction)> PQ;
 
 int hammingDistance(DataVector& d1,DataVector& d2) {
     assert((int)d1.size()==(int)d2.size());
@@ -61,10 +59,10 @@ void printVantagePoints(vector<DataVector>& vps) {
 }
 void printVantagePointScore(vector<DataVector>& vps) {
     set<int> dist;
-    for ( DataVector& vp1: vps ) {
-        for ( DataVector& vp2: vps ) {
-            if ( vp1 == vp2 ) continue;
-            dist.insert(hammingDistance(vp1,vp2));
+    for ( int i = 0 ; i < (int)vps.size() ; i++ ) {
+        for ( int j = 0 ; j < (int)vps.size() ; j++ ) {
+            if ( i == j ) continue;
+            dist.insert(hammingDistance(vps[i],vps[j]));
         }
     }
     printf("%d\n",sz(dist));
@@ -80,22 +78,12 @@ DataVector generateRandomPoint(int N,int A=10) {
     }
     return ret;
 }
-PQ initPriorityQueue(int N) {
-    PQ pq(pqCompareFunction);
-    for ( int i = 0 ; i < N ; i++ ) {
-        pq.push(ii(i,0));
-    }
-    return pq;
-}
-DataVector generatePoint(DataVector& vp,int N,int newDist,PQ& pq,int A=10) {
+DataVector generatePoint(DataVector& vp,int N,int newDist,int A=10) {
     DataVector newPoint = vp;
+    uniform_int_distribution<int> distribution(0,N-1);
     set<int> changePosition;
     while ( sz(changePosition) < newDist ) {
-        int dim = pq.top().first;
-        int count = pq.top().second;
-        pq.pop();
-        changePosition.insert(dim);
-        pq.push(ii(dim,count+1));
+        changePosition.insert(distribution(generator));
     }
     for ( auto& position: changePosition ) {
         char c = generateAlphabet(A);
@@ -106,7 +94,7 @@ DataVector generatePoint(DataVector& vp,int N,int newDist,PQ& pq,int A=10) {
     }
     return newPoint;
 }
-vector<iDV> generateCandidateSet(DataVector& vp,int N,int lVl,int K,PQ& pq,int A=10) {
+vector<iDV> generateCandidateSet(DataVector& vp,int N,int lVl,int K,int A=10) {
     vector<iDV> newCandidateSet;
     set<int> dist;
     uniform_int_distribution<int> distribution(1,N);
@@ -114,7 +102,7 @@ vector<iDV> generateCandidateSet(DataVector& vp,int N,int lVl,int K,PQ& pq,int A
         int newDist = distribution(generator);
         if ( dist.count(newDist) == 0 ) {
             dist.insert(newDist);
-            newCandidateSet.push_back(iDV(newDist,generatePoint(vp,N,newDist,pq,A)));
+            newCandidateSet.push_back(iDV(newDist,generatePoint(vp,N,newDist,A)));
         }
     }
     return newCandidateSet;
@@ -131,10 +119,9 @@ vector<DataVector> generateVantagePoints(int N,int M,int K,int A=10) {
     vector<DataVector> V;
     set<int> dist;
     vector<iDV> candidateSet;
-    PQ pq = initPriorityQueue(N);
 #ifdef HasDataSet
 #else
-    DataVector t;for ( int i = 0 ; i < 6 ; i++ )t.push_back('A');
+    DataVector t;for ( int i = 0 ; i < N ; i++ )t.push_back('A');
     V.push_back(t);
 //    V.push_back(generateRandomPoint(N,A));
 #endif
@@ -142,7 +129,7 @@ vector<DataVector> generateVantagePoints(int N,int M,int K,int A=10) {
     bool first = true;
     while ( (int)V.size() < M ) {
         for ( DataVector &vp: V ) {
-            vector<iDV> newCandidateSet = generateCandidateSet(vp,N,sz(V),K,pq,A);
+            vector<iDV> newCandidateSet = generateCandidateSet(vp,N,sz(V),K,A);
             for ( iDV& newCandidate: newCandidateSet ) {
                 candidateSet.push_back(newCandidate);
             }
@@ -171,7 +158,7 @@ vector<DataVector> generateVantagePoints(int N,int M,int K,int A=10) {
         candidateSet = eraseCandidateSet(candidateSet,dist);
         if ( first && sz(dist) == N ) {
             printf("aleady arrive\n");
-            printVantagePoints(V);
+//            printVantagePoints(V);
             printf("%d ",sz(V));
             printVantagePointScore(V);
             puts("");
@@ -186,13 +173,10 @@ int main() {
     printVantagePoints(vps);
     printVantagePointScore(vps);
     */
-    generateVantagePoints(6,6,1);
-    /*
-    for ( int i = 1 ; i < 100 ; i++ ) {
+    for ( int i = 1; i < 100 ; i++ ) {
         printf("i : %d\n",i);
         generateVantagePoints(i,i,i);
     }
-    */
     
     return 0;
 }
